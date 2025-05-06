@@ -49,6 +49,25 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
+resource "aws_eip" "nat" {
+  count  = length(var.public_subnet_cidrs)
+  domain = "vpc"
+
+  tags = {
+    Name = "${var.cluster_name}-nat-${count.index + 1}"
+  }
+}
+
+resource "aws_nat_gateway" "main" {
+  count         = length(var.public_subnet_cidrs)
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+
+  tags = {
+    Name = "${var.cluster_name}-nat-${count.index + 1}"
+  }
+}
+
 # route table for public
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id

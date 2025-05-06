@@ -1,22 +1,39 @@
 provider "aws" {
-  region  = "ap-southeast-1"
+  region = "ap-southeast-1"
 }
 
-resource "aws_s3_bucket" "example" {
-  bucket = "demo-terraform-kaylin-eks-state-bucket"
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "demo-terraform-kaylin-eks-state-s3-bucket"
 
   lifecycle {
     prevent_destroy = false
   }
 }
 
-resource "aws_dynamodb_table" "basic-dynamodb-table" {
-  name           = "terraform-eks-state-locks"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockId"
+resource "aws_s3_bucket_versioning" "terraform_state" {
+  bucket = aws_s3_bucket.terraform_state.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "terraform-eks-state-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
   attribute {
-    name = "LockId"
+    name = "LockID"
     type = "S"
   }
 }
